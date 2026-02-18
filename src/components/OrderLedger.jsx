@@ -1,10 +1,20 @@
-import { useState } from "react";
-import { orders, suppliers, formatINR, items, calcReorder } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { formatINR, calcReorder } from "../data/staticData";
+import { fetchOrders, fetchSuppliers, fetchItems } from "../api";
 import ReorderFormModal from "./ReorderFormModal";
 
 export default function OrderLedger() {
-  const [poItem, setPoItem]           = useState(null);
+  const [items, setItems] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [poItem, setPoItem] = useState(null);
   const [submittedPOs, setSubmittedPOs] = useState([]);
+
+  useEffect(() => {
+    fetchItems().then(setItems);
+    fetchOrders().then(setOrders);
+    fetchSuppliers().then(setSuppliers);
+  }, []);
 
   const handleSubmit = (formData) => {
     setSubmittedPOs(prev => {

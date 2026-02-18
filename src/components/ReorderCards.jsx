@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { items, calcReorder } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { fetchReorderAlerts } from "../api";
 import ReorderFormModal from "./ReorderFormModal";
 
 function formatDate(date) {
@@ -7,8 +7,13 @@ function formatDate(date) {
 }
 
 export default function ReorderCards() {
+  const [items, setItems] = useState([]);
   const [modalItem, setModalItem] = useState(null);
   const [submittedPOs, setSubmittedPOs] = useState([]);
+
+  useEffect(() => {
+    fetchReorderAlerts().then(setItems);
+  }, []);
 
   const handleSubmit = (formData) => {
     setSubmittedPOs(prev => {
@@ -53,9 +58,13 @@ export default function ReorderCards() {
       {/* Reorder Cards Grid */}
       <div className="grid-5" style={{ marginBottom: 24 }}>
         {items.map((item) => {
-          const { reorderLevel, reorderQty, coverageDays, orderByDate, deliveryDate } = calcReorder(item);
+          const reorderLevel = item.reorder_level;
+          const reorderQty = item.suggested_reorder_qty;
+          const coverageDays = item.coverage_days;
+          const orderByDate = new Date(item.order_by_date);
+          const deliveryDate = new Date(item.delivery_date);
           const isCritical = reorderQty > 0;
-          const pct = Math.min((item.inventory.current / reorderLevel) * 100, 100);
+          const pct = Math.min((item.current_stock / reorderLevel) * 100, 100);
           const existingPO = submittedPOs.find(po => po.itemName === item.name);
 
           return (
@@ -70,8 +79,8 @@ export default function ReorderCards() {
               </div>
 
               {[
-                ["Current Stock", `${item.inventory.current} ${item.unit}`],
-                ["Daily Usage",   `${item.inventory.daily} ${item.unit}/day`],
+                ["Current Stock", `${item.current_stock} ${item.unit}`],
+                ["Daily Usage",   `${item.daily_usage} ${item.unit}/day`],
                 ["Reorder Level", `${reorderLevel} ${item.unit}`],
                 ["Suggested Qty", isCritical ? `+${reorderQty} ${item.unit}` : "Not Required"],
                 ["Coverage",      `${coverageDays} days`],
@@ -169,10 +178,14 @@ export default function ReorderCards() {
               </tr>
             </thead>
             <tbody>
-              {[...items].sort((a, b) => calcReorder(a).coverageDays - calcReorder(b).coverageDays).map((item) => {
-                const { coverageDays, reorderQty, stockoutDate, orderByDate, deliveryDate } = calcReorder(item);
+              {[...items].sort((a, b) => a.coverage_days - b.coverage_days).map((item) => {
+                const coverageDays = item.coverage_days;
+                const reorderQty = item.suggested_reorder_qty;
+                const stockoutDate = new Date(item.stockout_date);
+                const orderByDate = new Date(item.order_by_date);
+                const deliveryDate = new Date(item.delivery_date);
                 const isOverdue = new Date() >= orderByDate;
-                const isSoon    = coverageDays <= item.inventory.lead + 2;
+                const isSoon    = coverageDays <= item.lead_time + 2;
                 const urgency   = isOverdue ? "OVERDUE" : isSoon ? "THIS WEEK" : "UPCOMING";
                 const uColor    = isOverdue ? "#f87171" : isSoon ? "#c9a84c" : "#4ade80";
                 const existingPO = submittedPOs.find(po => po.itemName === item.name);
@@ -183,7 +196,7 @@ export default function ReorderCards() {
                     <td style={{ color: coverageDays <= 3 ? "#f87171" : "#e2e8f0" }}>{coverageDays}d</td>
                     <td style={{ color: "#f87171" }}>{formatDate(stockoutDate)}</td>
                     <td style={{ color: isOverdue ? "#f87171" : "#c9a84c", fontWeight: 700 }}>{formatDate(orderByDate)}</td>
-                    <td>{item.inventory.lead}d</td>
+                    <td>{item.lead_time}d</td>
                     <td style={{ color: "#4ade80" }}>{formatDate(deliveryDate)}</td>
                     <td><span className="badge" style={{ color: uColor, borderColor: uColor, background: `${uColor}15` }}>{urgency}</span></td>
                     <td>

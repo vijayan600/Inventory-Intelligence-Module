@@ -1,6 +1,16 @@
-import { items, calcVariance, calcReorder, calcRiskScore } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { calcVariance, calcReorder, calcRiskScore } from "../data/staticData";
+import { fetchItems } from "../api";
 
 export default function Ticker() {
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    fetchItems().then(setItems);
+  }, []);
+
+  if (items.length === 0) return null;
+
   const parts = items.map((item) => {
     const { variance } = calcVariance(item);
     const { reorderQty, coverageDays } = calcReorder(item);

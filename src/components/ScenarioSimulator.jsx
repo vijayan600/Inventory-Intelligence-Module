@@ -1,26 +1,34 @@
-import { useState } from "react";
-import { items, formatINR, calcReorder } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { formatINR } from "../data/staticData";
+import { fetchReorderAlerts } from "../api";
 
 export default function ScenarioSimulator() {
+  const [items, setItems] = useState([]);
   const [consumptionIncrease, setConsumptionIncrease] = useState(0);
   const [leadTimeIncrease, setLeadTimeIncrease] = useState(0);
   const [rateIncrease, setRateIncrease] = useState(0);
   const [selectedItem, setSelectedItem] = useState(0);
 
+  useEffect(() => {
+    fetchReorderAlerts().then(setItems);
+  }, []);
+
+  if (items.length === 0) return null;
+
   const item = items[selectedItem];
 
-  const simDaily = item.inventory.daily * (1 + consumptionIncrease / 100);
-  const simLead = item.inventory.lead + leadTimeIncrease;
-  const simRate = item.actual.rate * (1 + rateIncrease / 100);
+  const simDaily = item.daily_usage * (1 + consumptionIncrease / 100);
+  const simLead = item.lead_time + leadTimeIncrease;
+  const simRate = item.actual_rate * (1 + rateIncrease / 100);
 
-  const simReorderLevel = Math.round(simDaily * simLead + item.inventory.safety);
-  const simReorderQty = simReorderLevel - item.inventory.current;
-  const simCoverDays = parseFloat((item.inventory.current / simDaily).toFixed(1));
-  const simCost = item.actual.qty * simRate;
-  const origCost = item.actual.qty * item.actual.rate;
+  const simReorderLevel = Math.round(simDaily * simLead + item.safety_stock);
+  const simReorderQty = simReorderLevel - item.current_stock;
+  const simCoverDays = parseFloat((item.current_stock / simDaily).toFixed(1));
+  const simCost = item.actual_qty * simRate;
+  const origCost = item.actual_qty * item.actual_rate;
   const costImpact = simCost - origCost;
 
-  const origReorderLevel = calcReorder(item).reorderLevel;
+  const origReorderLevel = item.reorder_level;
   const newStatus = simReorderQty > 0 ? "REORDER REQUIRED" : "STABLE";
 
   const sliders = [
@@ -30,7 +38,7 @@ export default function ScenarioSimulator() {
       set: setConsumptionIncrease,
       min: 0, max: 100, step: 5,
       unit: "%",
-      hint: `${item.inventory.daily} → ${simDaily.toFixed(0)} ${item.unit}/day`,
+      hint: `${item.daily_usage} → ${simDaily.toFixed(0)} ${item.unit}/day`,
     },
     {
       label: "Lead Time Increase",
@@ -38,7 +46,7 @@ export default function ScenarioSimulator() {
       set: setLeadTimeIncrease,
       min: 0, max: 10, step: 1,
       unit: " days",
-      hint: `${item.inventory.lead} → ${simLead} days`,
+      hint: `${item.lead_time} → ${simLead} days`,
     },
     {
       label: "Rate Increase",
@@ -46,7 +54,7 @@ export default function ScenarioSimulator() {
       set: setRateIncrease,
       min: 0, max: 50, step: 1,
       unit: "%",
-      hint: `₹${item.actual.rate} → ₹${simRate.toFixed(0)}`,
+      hint: `₹${item.actual_rate} → ₹${simRate.toFixed(0)}`,
     },
   ];
 
@@ -131,7 +139,7 @@ export default function ScenarioSimulator() {
             {[
               ["Original Reorder Level", `${origReorderLevel} ${item.unit}`, "#e2e8f0"],
               ["Simulated Reorder Level", `${simReorderLevel} ${item.unit}`, simReorderLevel > origReorderLevel ? "#f87171" : "#4ade80"],
-              ["Simulated Coverage", `${simCoverDays} days`, simCoverDays < item.inventory.lead ? "#f87171" : "#4ade80"],
+              ["Simulated Coverage", `${simCoverDays} days`, simCoverDays < item.lead_time ? "#f87171" : "#4ade80"],
               ["Suggested Order Qty", simReorderQty > 0 ? `+${simReorderQty} ${item.unit}` : "Not Required", simReorderQty > 0 ? "#f87171" : "#4ade80"],
               ["Rate Cost Impact", `${costImpact >= 0 ? "+" : ""}${formatINR(costImpact)}`, costImpact > 0 ? "#f87171" : "#4ade80"],
             ].map(([label, val, color]) => (

@@ -1,6 +1,14 @@
-import { items, calcReorder } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { calcReorder } from "../data/staticData";
+import { fetchItems } from "../api";
 
 export default function StockHealthMatrix() {
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    fetchItems().then(setItems);
+  }, []);
+
   return (
     <div className="card">
       <p className="section-title">◈ Stock Health Matrix</p>

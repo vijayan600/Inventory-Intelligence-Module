@@ -1,6 +1,14 @@
-import { items, calcReorder, calcRiskScore } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { calcReorder, calcRiskScore } from "../data/staticData";
+import { fetchItems } from "../api";
 
 export default function AlertsPanel() {
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    fetchItems().then(setItems);
+  }, []);
+
   const critical = items.filter((i) => calcReorder(i).reorderQty > 0)
     .sort((a, b) => calcRiskScore(b) - calcRiskScore(a));
 

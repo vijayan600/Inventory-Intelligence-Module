@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { suppliers, formatINR, calcReorder } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { formatINR } from "../data/staticData";
+import { fetchSuppliers } from "../api";
 
 const STATUS_OPTIONS = ["Draft", "Pending Approval", "Approved", "Ordered", "Delivered", "Cancelled"];
 const PRIORITY_OPTIONS = ["Critical", "High", "Medium", "Low"];
@@ -48,7 +49,17 @@ const selectStyle = {
 };
 
 export default function ReorderFormModal({ item, onClose, onSubmit }) {
-  const { reorderQty, reorderLevel, coverageDays, deliveryDate, orderByDate } = calcReorder(item);
+  const [suppliers, setSuppliersData] = useState([]);
+  const reorderQty = item.suggested_reorder_qty ?? 0;
+  const reorderLevel = item.reorder_level ?? 0;
+  const coverageDays = item.coverage_days ?? 0;
+  const deliveryDate = item.delivery_date ? new Date(item.delivery_date) : new Date();
+  const orderByDate = item.order_by_date ? new Date(item.order_by_date) : new Date();
+
+  useEffect(() => {
+    fetchSuppliers().then(setSuppliersData);
+  }, []);
+
   const supplier = suppliers.find(s => s.item === item.name) || {};
 
   const today = new Date().toISOString().split("T")[0];
@@ -61,17 +72,17 @@ export default function ReorderFormModal({ item, onClose, onSubmit }) {
     poDate:          today,
     requestedBy:     "",
     department:      "Production",
-    priority:        item.inventory.current < reorderLevel * 0.5 ? "Critical" : "High",
+    priority:        (item.current_stock ?? 0) < reorderLevel * 0.5 ? "Critical" : "High",
     status:          "Draft",
 
     // Item Details
     itemName:        item.name,
     itemCode:        `ITM-00${item.id}`,
     unit:            item.unit,
-    currentStock:    item.inventory.current,
+    currentStock:    item.current_stock ?? 0,
     reorderLevel:    reorderLevel,
     orderQty:        Math.max(reorderQty, 0),
-    unitRate:        item.actual.rate,
+    unitRate:        item.actual_rate ?? 0,
     gstPercent:      18,
     discount:        0,
 

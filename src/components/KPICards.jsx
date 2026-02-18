@@ -1,6 +1,18 @@
-import { items, orders, formatINR, calcReorder, calcRiskScore } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { formatINR, calcReorder, calcRiskScore } from "../data/staticData";
+import { fetchItems, fetchOrders } from "../api";
 
 export default function KPICards() {
+  const [items, setItems] = useState([]);
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    fetchItems().then(setItems);
+    fetchOrders().then(setOrders);
+  }, []);
+
+  if (items.length === 0) return null;
+
   const totalPlanned = items.reduce((s, i) => s + i.planned.qty * i.planned.rate, 0);
   const totalActual  = items.reduce((s, i) => s + i.actual.qty * i.actual.rate, 0);
   const totalVariance = totalActual - totalPlanned;

@@ -1,6 +1,14 @@
-import { items, formatINR, calcVariance } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { formatINR } from "../data/staticData";
+import { fetchVarianceReport } from "../api";
 
 export default function VarianceTable() {
+  const [rows, setRows] = useState([]);
+
+  useEffect(() => {
+    fetchVarianceReport().then(setRows);
+  }, []);
+
   let totP = 0, totA = 0, totV = 0;
 
   return (
@@ -17,33 +25,32 @@ export default function VarianceTable() {
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => {
-              const { plannedAmt, actualAmt, variance, efficiencyPct } = calcVariance(item);
-              totP += plannedAmt; totA += actualAmt; totV += variance;
-              const isLoss = variance > 0;
+            {rows.map((r) => {
+              totP += r.planned_amount; totA += r.actual_amount; totV += r.variance;
+              const isLoss = r.variance > 0;
               return (
-                <tr key={item.id} className={isLoss ? "loss-row" : "save-row"}>
-                  <td style={{ color: "#c9a84c", fontWeight: 700, fontFamily: "'Cinzel',serif", fontSize: 12 }}>{item.name}</td>
-                  <td>{item.planned.qty} {item.unit}</td>
-                  <td>₹{item.planned.rate}</td>
-                  <td style={{ color: "#e2e8f0" }}>{formatINR(plannedAmt)}</td>
-                  <td>{item.actual.qty} {item.unit}</td>
-                  <td>₹{item.actual.rate}</td>
-                  <td style={{ color: "#e2e8f0" }}>{formatINR(actualAmt)}</td>
+                <tr key={r.id} className={isLoss ? "loss-row" : "save-row"}>
+                  <td style={{ color: "#c9a84c", fontWeight: 700, fontFamily: "'Cinzel',serif", fontSize: 12 }}>{r.name}</td>
+                  <td>{r.planned_qty} {r.unit}</td>
+                  <td>₹{r.planned_rate}</td>
+                  <td style={{ color: "#e2e8f0" }}>{formatINR(r.planned_amount)}</td>
+                  <td>{r.actual_qty} {r.unit}</td>
+                  <td>₹{r.actual_rate}</td>
+                  <td style={{ color: "#e2e8f0" }}>{formatINR(r.actual_amount)}</td>
                   <td style={{ color: isLoss ? "#f87171" : "#4ade80", fontWeight: 700 }}>
-                    {isLoss ? "+" : ""}{formatINR(variance)}
+                    {isLoss ? "+" : ""}{formatINR(r.variance)}
                   </td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ color: efficiencyPct >= 100 ? "#4ade80" : "#f87171" }}>
-                        {efficiencyPct.toFixed(1)}%
+                      <span style={{ color: r.efficiency_pct >= 100 ? "#4ade80" : "#f87171" }}>
+                        {r.efficiency_pct.toFixed(1)}%
                       </span>
                       <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 99 }}>
-                        <div style={{ width: `${Math.min(efficiencyPct, 100)}%`, height: 4, borderRadius: 99, background: efficiencyPct >= 100 ? "#4ade80" : "#f87171" }} />
+                        <div style={{ width: `${Math.min(r.efficiency_pct, 100)}%`, height: 4, borderRadius: 99, background: r.efficiency_pct >= 100 ? "#4ade80" : "#f87171" }} />
                       </div>
                     </div>
                   </td>
-                  <td><span className={`badge ${isLoss ? "badge-loss" : "badge-saving"}`}>{isLoss ? "LOSS" : "SAVING"}</span></td>
+                  <td><span className={`badge ${isLoss ? "badge-loss" : "badge-saving"}`}>{r.status}</span></td>
                 </tr>
               );
             })}
@@ -84,23 +91,22 @@ export default function VarianceTable() {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => {
-                const { variance, priceVariance, qtyVariance } = calcVariance(item);
-                const isLoss = variance > 0;
-                const priceIsBigger = Math.abs(priceVariance) > Math.abs(qtyVariance);
+              {rows.map((r) => {
+                const isLoss = r.variance > 0;
+                const priceIsBigger = Math.abs(r.price_variance) > Math.abs(r.qty_variance);
                 const rootCause = priceIsBigger ? "Supplier Rate ↑" : "Material Waste ↑";
                 const action = priceIsBigger ? "Renegotiate supplier price" : "Reduce floor wastage";
                 return (
-                  <tr key={item.id} className={isLoss ? "loss-row" : "save-row"}>
-                    <td style={{ color: "#c9a84c", fontFamily: "'Cinzel',serif", fontWeight: 700, fontSize: 12 }}>{item.name}</td>
+                  <tr key={r.id} className={isLoss ? "loss-row" : "save-row"}>
+                    <td style={{ color: "#c9a84c", fontFamily: "'Cinzel',serif", fontWeight: 700, fontSize: 12 }}>{r.name}</td>
                     <td style={{ color: isLoss ? "#f87171" : "#4ade80", fontWeight: 700 }}>
-                      {isLoss ? "+" : ""}{formatINR(variance)}
+                      {isLoss ? "+" : ""}{formatINR(r.variance)}
                     </td>
-                    <td style={{ color: priceVariance > 0 ? "#f87171" : "#4ade80" }}>
-                      {priceVariance > 0 ? "+" : ""}{formatINR(priceVariance)}
+                    <td style={{ color: r.price_variance > 0 ? "#f87171" : "#4ade80" }}>
+                      {r.price_variance > 0 ? "+" : ""}{formatINR(r.price_variance)}
                     </td>
-                    <td style={{ color: qtyVariance > 0 ? "#f87171" : "#4ade80" }}>
-                      {qtyVariance > 0 ? "+" : ""}{formatINR(qtyVariance)}
+                    <td style={{ color: r.qty_variance > 0 ? "#f87171" : "#4ade80" }}>
+                      {r.qty_variance > 0 ? "+" : ""}{formatINR(r.qty_variance)}
                     </td>
                     <td>
                       <span className={`badge ${isLoss ? "badge-loss" : "badge-stable"}`}>{rootCause}</span>

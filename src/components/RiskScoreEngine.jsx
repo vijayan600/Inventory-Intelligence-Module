@@ -1,4 +1,6 @@
-import { items, calcRiskScore, calcReorder, formatINR, calcProductionLoss } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { formatINR } from "../data/staticData";
+import { fetchReorderAlerts } from "../api";
 
 function RiskDial({ score }) {
   const radius = 36;
@@ -44,6 +46,14 @@ function RiskDial({ score }) {
 }
 
 export default function RiskScoreEngine() {
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    fetchReorderAlerts().then(setItems);
+  }, []);
+
+  if (items.length === 0) return null;
+
   return (
     <div>
       <div className="card" style={{ marginBottom: 20 }}>
@@ -54,8 +64,9 @@ export default function RiskScoreEngine() {
 
         <div className="grid-5">
           {items.map((item) => {
-            const score = calcRiskScore(item);
-            const { reorderQty, coverageDays } = calcReorder(item);
+            const score = item.risk_score;
+            const reorderQty = item.suggested_reorder_qty;
+            const coverageDays = item.coverage_days;
             const isCritical = reorderQty > 0;
             const riskColor = score >= 70 ? "#f87171" : score >= 40 ? "#c9a84c" : "#4ade80";
 
@@ -76,9 +87,9 @@ export default function RiskScoreEngine() {
 
                 {[
                   ["Stock Cover", `${coverageDays} days`],
-                  ["Lead Time", `${item.inventory.lead} days`],
-                  ["Delay History", `${item.delayHistory} incidents`],
-                  ["Supplier", item.supplier],
+                  ["Lead Time", `${item.lead_time} days`],
+                  ["Delay History", `${item.delay_history} incidents`],
+                  ["Supplier", item.supplier_name],
                 ].map(([label, val]) => (
                   <div key={label} className="data-row">
                     <span className="data-label">{label}</span>
@@ -110,8 +121,16 @@ export default function RiskScoreEngine() {
         </p>
 
         <div className="grid-3">
-          {items.filter(i => calcReorder(i).reorderQty > 0).map((item) => {
-            const loss = calcProductionLoss(item);
+          {items.filter(i => i.suggested_reorder_qty > 0).map((item) => {
+            const covDays = item.coverage_days;
+            const loss = {
+              hoursUntilStop: covDays * 8,
+              lossPerHour: item.production_value,
+              lossPerDay: item.production_value * 8,
+              workerIdleCost: item.worker_cost,
+              totalLoss: item.production_value * 8 + item.worker_cost,
+              coverageDays: covDays,
+            };
             return (
               <div key={item.id} className="card" style={{
                 borderTop: "3px solid #8b1a1a",
@@ -145,7 +164,7 @@ export default function RiskScoreEngine() {
           })}
         </div>
 
-        {items.filter(i => calcReorder(i).reorderQty > 0).length === 0 && (
+        {items.filter(i => i.suggested_reorder_qty > 0).length === 0 && (
           <div style={{ textAlign: "center", padding: "30px 0", color: "rgba(255,255,255,0.3)" }}>
             <p>✓ No critical stockouts detected. All items are within safe levels.</p>
           </div>

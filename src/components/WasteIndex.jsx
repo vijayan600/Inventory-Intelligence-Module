@@ -1,7 +1,17 @@
-import { items, calcVariance, formatINR } from "../data/staticData";
+import { useState, useEffect } from "react";
+import { formatINR } from "../data/staticData";
+import { fetchVarianceReport } from "../api";
 
 export default function WasteIndex() {
-  const sorted = [...items].sort((a, b) => calcVariance(b).wastePct - calcVariance(a).wastePct);
+  const [rows, setRows] = useState([]);
+
+  useEffect(() => {
+    fetchVarianceReport().then(setRows);
+  }, []);
+
+  if (rows.length === 0) return null;
+
+  const sorted = [...rows].sort((a, b) => b.waste_pct - a.waste_pct);
 
   return (
     <div className="card">
@@ -11,13 +21,15 @@ export default function WasteIndex() {
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {sorted.map((item, rank) => {
-          const { wastePct, efficiencyPct, plannedAmt, actualAmt, variance } = calcVariance(item);
+        {sorted.map((r, rank) => {
+          const wastePct = r.waste_pct;
+          const efficiencyPct = r.efficiency_pct;
+          const variance = r.variance;
           const isWaste = wastePct > 0;
           const wasteColor = wastePct > 8 ? "#f87171" : wastePct > 3 ? "#c9a84c" : "#4ade80";
 
           return (
-            <div key={item.id} style={{
+            <div key={r.id} style={{
               display: "flex",
               alignItems: "center",
               gap: 14,
@@ -43,8 +55,8 @@ export default function WasteIndex() {
 
               {/* Name */}
               <div style={{ width: 70 }}>
-                <p style={{ color: "#c9a84c", fontFamily: "'Cinzel',serif", fontWeight: 700, fontSize: 12 }}>{item.name}</p>
-                <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, fontFamily: "monospace" }}>{item.unit}</p>
+                <p style={{ color: "#c9a84c", fontFamily: "'Cinzel',serif", fontWeight: 700, fontSize: 12 }}>{r.name}</p>
+                <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, fontFamily: "monospace" }}>{r.unit}</p>
               </div>
 
               {/* Bar */}
@@ -89,9 +101,9 @@ export default function WasteIndex() {
       <div className="divider" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
         {[
-          ["Avg Efficiency", `${(items.reduce((s,i) => s + calcVariance(i).efficiencyPct, 0) / items.length).toFixed(1)}%`, "#c9a84c"],
-          ["Total Waste Cost", formatINR(items.reduce((s,i) => { const v = calcVariance(i); return s + (v.variance > 0 ? v.variance : 0); }, 0)), "#f87171"],
-          ["Items Efficient", `${items.filter(i => calcVariance(i).efficiencyPct >= 100).length}/${items.length}`, "#4ade80"],
+          ["Avg Efficiency", `${(rows.reduce((s,r) => s + r.efficiency_pct, 0) / rows.length).toFixed(1)}%`, "#c9a84c"],
+          ["Total Waste Cost", formatINR(rows.reduce((s,r) => s + (r.variance > 0 ? r.variance : 0), 0)), "#f87171"],
+          ["Items Efficient", `${rows.filter(r => r.efficiency_pct >= 100).length}/${rows.length}`, "#4ade80"],
         ].map(([label, val, color]) => (
           <div key={label} style={{ textAlign: "center", padding: "10px 0" }}>
             <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>{label}</p>
