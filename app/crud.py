@@ -8,9 +8,9 @@ async def get_next_id(collection):
     return (doc["id"] + 1) if doc else 1
 
 
-# ═══════════════════════════════════════
+ 
 #  INVENTORY ITEMS
-# ═══════════════════════════════════════
+ 
 
 async def get_all_items():
     cursor = items_col.find({}, {"_id": 0}).sort("id", 1)
@@ -40,9 +40,9 @@ async def delete_item(item_id: int):
     return result.deleted_count > 0
 
 
-# ═══════════════════════════════════════
+ 
 #  ORDERS
-# ═══════════════════════════════════════
+ 
 
 async def get_all_orders():
     cursor = orders_col.find({}, {"_id": 0}).sort("id", 1)
@@ -62,9 +62,9 @@ async def create_order(data: dict):
     return await get_order_by_id(data["id"])
 
 
-# ═══════════════════════════════════════
+ 
 #  SUPPLIERS
-# ═══════════════════════════════════════
+ 
 
 async def get_all_suppliers():
     cursor = suppliers_col.find({}, {"_id": 0}).sort("id", 1)
@@ -75,9 +75,9 @@ async def get_supplier_by_id(supplier_id: int):
     return await suppliers_col.find_one({"id": supplier_id}, {"_id": 0})
 
 
-# ═══════════════════════════════════════
+ 
 #  PURCHASE ORDERS
-# ═══════════════════════════════════════
+ 
 
 async def get_all_purchase_orders():
     cursor = purchase_orders_col.find({}, {"_id": 0}).sort("id", -1)
