@@ -88,6 +88,11 @@ export async function updateItem(id, data) {
   return res.json();
 }
 
+export async function deleteItem(id) {
+  const res = await fetch(`${API_BASE}/items/${id}`, { method: "DELETE" });
+  return res.json();
+}
+
 export async function createPurchaseOrder(po) {
   const res = await fetch(`${API_BASE}/purchase-orders/create`, {
     method: "POST",

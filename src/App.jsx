@@ -6,12 +6,14 @@ import Overview from "./pages/Overview";
 import VarianceAnalysis from "./pages/VarianceAnalysis";
 import ReorderIntelligence from "./pages/ReorderIntelligence";
 import OrderLedgerPage from "./pages/OrderLedgerPage";
+import ItemManager from "./pages/ItemManager";
 
 const tabs = [
   { id: "overview",  label: "Overview",              icon: "◎" },
   { id: "variance",  label: "Variance Analysis",     icon: "◈" },
   { id: "reorder",   label: "Reorder Intelligence",  icon: "⚑" },
   { id: "ledger",    label: "Order Ledger",           icon: "◆" },
+  { id: "items",     label: "Item Management",        icon: "✎" },
 ];
 
 export default function App() {
@@ -41,6 +43,7 @@ export default function App() {
         {activeTab === "variance"  && <VarianceAnalysis />}
         {activeTab === "reorder"   && <ReorderIntelligence />}
         {activeTab === "ledger"    && <OrderLedgerPage />}
+        {activeTab === "items"     && <ItemManager />}
       </div>
     </div>
   );
